@@ -1,0 +1,66 @@
+version: '3.8'
+services:
+  product-service:
+    build: ./product-service
+    ports:
+      - "5001:5001"
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/product_db
+    depends_on:
+      - postgres
+      - kafka
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "5002:5002"
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/order_db
+    depends_on:
+      - postgres
+      - kafka
+
+  customer-service:
+    build: ./customer-service
+    ports:
+      - "5003:5003"
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/customer_db
+    depends_on:
+      - postgres
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - product-service
+      - order-service
+      - customer-service
+
+  postgres:
+    image: postgres:12
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  kafka:
+    image: wurstmeister/kafka
+    environment:
+      KAFKA_ADVERTISED_LISTENER: kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL: PLAINTEXT
+      KAFKA_LISTENER_NAME: INSIDE
+      KAFKA_LISTENER_INTERNAL_PORT: 9093
+      KAFKA_LISTENER_OUTSIDE_PORT: 9092
+      KAFKA_LISTENER_NAME_OUTSIDE: OUTSIDE
+      KAFKA_LISTENER_PORT: 9092
+      KAFKA_LISTENER_NAMES: INSIDE,OUTSIDE
+      KAFKA_LISTENER_INTER_BROKER_LISTENER_NAME: INSIDE
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+
+volumes:
+  postgres_data:
